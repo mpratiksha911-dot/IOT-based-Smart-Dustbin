@@ -1,0 +1,97 @@
+#include <Servo.h>
+
+#define TRIG_PIN D5
+#define ECHO_PIN D6
+#define SOIL_PIN D7   
+#define GAS_PIN A0    
+#define SERVO_PIN D3
+
+
+#define DIST_THRESHOLD 20   
+#define GAS_THRESHOLD 500   
+
+Servo myServo;
+
+//measure distance
+long getDistance() 
+{
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  long distance = duration * 0.034 / 2;
+
+  return distance;
+}
+
+void setup() 
+{
+  Serial.begin(9600);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(SOIL_PIN, INPUT);
+
+  myServo.attach(SERVO_PIN);
+  myServo.write(90); 
+
+  delay(2000);
+}
+
+void loop() 
+{
+  // gas sensor
+  int gasValue = analogRead(GAS_PIN);
+  Serial.print("Gas Value: ");
+  Serial.println(gasValue);
+
+  if (gasValue > GAS_THRESHOLD) 
+  {
+    Serial.println("High Gas Detected!");
+
+    myServo.write(10);   
+    delay(8000);         
+    myServo.write(90);   
+
+    delay(1000);
+    return; 
+  }
+
+  //ultrasonic sensor
+  long distance = getDistance();
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  if (distance > 0 && distance <= DIST_THRESHOLD) 
+  {
+    Serial.println("Object Detected!");
+
+    int moistureState = digitalRead(SOIL_PIN);
+    Serial.print("Moisture State: ");
+    Serial.println(moistureState);
+
+    if (moistureState == LOW) 
+    {
+      Serial.println("Wet Waste");
+
+      myServo.write(10);   //wet side
+      delay(3000);
+    } 
+    else 
+    {
+      Serial.println("Dry Waste");
+
+      myServo.write(170);  //dry side
+      delay(3000);
+    }
+
+    myServo.write(90);
+    delay(1000);
+  }
+
+  delay(500);
+}
